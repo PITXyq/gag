@@ -1,0 +1,158 @@
+-- Script to create and give a "Candy Blossom Seed" tool to players
+-- This script should be placed in ServerScriptService in Roblox Studio
+
+-- Function to create the Candy Blossom Seed Tool
+local function createCandyBlossomSeedTool()
+    local tool = Instance.new("Tool")
+    tool.Name = "Candy Blossom Seed [1x]"
+    tool.ToolTip = "A sweet Candy Blossom Seed. Click to plant!"
+    tool.RequiresHandle = true -- The tool needs a part named "Handle"
+    tool.CanBeDropped = true    -- Allows players to drop the tool
+    tool.Enabled = true         -- Ensures the tool is usable
+
+    -- Create the Handle for the tool (the part players will hold)
+    local handle = Instance.new("Part")
+    handle.Name = "Handle"
+    handle.Parent = tool
+    handle.Size = Vector3.new(0.6, 0.6, 0.6) -- A small size, like a seed
+    handle.Shape = Enum.PartType.Ball        -- Make it spherical
+    handle.Color = Color3.fromRGB(255, 105, 180) -- A vibrant pink "candy" color
+    handle.Material = Enum.Material.Neon     -- Gives it a slight glow, like candy
+    handle.TopSurface = Enum.SurfaceType.Smooth
+    handle.BottomSurface = Enum.SurfaceType.Smooth
+    handle.Anchored = false -- Tool handles MUST be unanchored to be held correctly
+    handle.CanCollide = true
+
+    -- Add a visual flair: Sparkles
+    local sparkles = Instance.new("Sparkles", handle)
+    sparkles.SparkleColor = Color3.fromRGB(255, 182, 193) -- Light pink sparkles
+    sparkles.Enabled = true
+
+    -- Optional: If you have a custom inventory icon image for the seed:
+    -- tool.TextureId = "rbxassetid://YOUR_ICON_IMAGE_ID_HERE" -- Replace with your image ID
+
+    -- Script for tool functionality (e.g., planting)
+    -- This is a basic placeholder. You'll need to add your planting logic here.
+    local onActivateScript = Instance.new("Script")
+    onActivateScript.Name = "ActivateScript"
+    onActivateScript.Parent = tool
+    onActivateScript.Source = [[
+        local tool = script.Parent
+        local handle = tool:WaitForChild("Handle")
+
+        local debounce = false
+        local COOLDOWN_TIME = 1 -- Seconds
+
+        tool.Activated:Connect(function()
+            if debounce then return end
+            debounce = true
+
+            local player = tool.Parent:IsA("Backpack") and tool.Parent.Parent
+            if not player then
+                player = tool.Parent:IsA("Model") and tool.Parent.Parent -- Character model
+                if player and player:IsA("Player") then
+                    -- Tool is equipped
+                else
+                    debounce = false
+                    return -- Can't find player
+                end
+            end
+
+            print(player.Name .. " activated " .. tool.Name)
+
+            -- TODO: Implement your planting logic here.
+            -- For example:
+            -- 1. Get the mouse position or character's look direction.
+            -- 2. Raycast to find a suitable planting spot on the ground.
+            -- 3. Check if the spot is valid (e.g., on grass, not too close to other plants).
+            -- 4. Clone and position your plant model.
+            -- 5. If the seed is single-use, destroy the tool: tool:Destroy()
+
+            -- Example: Play a sound effect (if you have one)
+            -- local plantSound = Instance.new("Sound", handle)
+            -- plantSound.SoundId = "rbxassetid://YOUR_SOUND_ID_HERE"
+            -- plantSound:Play()
+            -- game.Debris:AddItem(plantSound, plantSound.TimeLength)
+
+            -- For now, just a print statement
+            print("Planting logic would go here for Candy Blossom Seed.")
+
+            -- If it's a one-time use seed, you might destroy it after planting:
+            -- tool:Destroy()
+            -- If you do this, the "[1x]" in the name becomes more relevant.
+            -- A more advanced system would manage actual quantities.
+
+            task.wait(COOLDOWN_TIME)
+            debounce = false
+        end)
+    ]]
+
+    return tool
+end
+
+-- Function to give the tool to a player when they join
+local function onPlayerAdded(player)
+    -- Get the player's Backpack (inventory)
+    local backpack = player:WaitForChild("Backpack")
+
+    -- Check if the player already has this tool (e.g., from a previous session if not cleared, or if script runs multiple times)
+    -- This simple check is by name. More robust systems might use unique IDs or tags.
+    if not backpack:FindFirstChild("Candy Blossom Seed [1x]") then
+        local newSeedTool = createCandyBlossomSeedTool()
+        newSeedTool.Parent = backpack -- Add the tool to their backpack
+        print("Gave Candy Blossom Seed [1x] to " .. player.Name)
+    end
+
+    -- You might also want to give it to their StarterGear if they should respawn with it
+    -- local starterGear = player:WaitForChild("StarterGear")
+    -- if not starterGear:FindFirstChild("Candy Blossom Seed [1x]") then
+    --     local newSeedToolForStarterGear = createCandyBlossomSeedTool() -- Create a new instance for StarterGear
+    --     newSeedToolForStarterGear.Parent = starterGear
+    -- end
+end
+
+-- Connect the onPlayerAdded function to the PlayerAdded event
+game.Players.PlayerAdded:Connect(onPlayerAdded)
+
+-- For players who might already be in the game when the script is loaded (e.g. during development)
+for _, player in ipairs(game.Players:GetPlayers()) do
+    -- Using task.spawn to avoid issues if onPlayerAdded yields
+    task.spawn(onPlayerAdded, player)
+end
+
+print("Candy Blossom Seed Tool Giver script has been loaded and is active.")
+
+--[[
+    Further Customization & Notes:
+
+    1.  **Visual Appearance (Handle):**
+        * The current handle is a pink neon sphere.
+        * To make it look exactly like the "Candy Blossom Seed" from "Grow a Garden," you'd ideally use a `MeshPart` for the `Handle`.
+        * You would need to upload the mesh and its texture to Roblox and get their asset IDs.
+        * Then, you would change the `handle` creation part:
+            -- local handle = Instance.new("MeshPart")
+            -- handle.Name = "Handle"
+            -- handle.Parent = tool
+            -- handle.MeshId = "rbxassetid://YOUR_SEED_MESH_ID"
+            -- handle.TextureID = "rbxassetid://YOUR_SEED_TEXTURE_ID" (if the mesh uses a separate texture)
+            -- -- Adjust Size, CFrame, etc. as needed for your mesh.
+            -- handle.Anchored = false
+            -- handle.CanCollide = true -- Or false, depending on how you want it to behave
+
+    2.  **Inventory Icon (`Tool.TextureId`):**
+        * If you have a 2D image for the inventory icon, upload it to Roblox and set the `tool.TextureId` property to its asset ID (e.g., "rbxassetid://123456789").
+
+    3.  **Planting Logic (`ActivateScript`):**
+        * The `tool.Activated` event fires when the player clicks while the tool is equipped.
+        * You need to fill in the logic for what happens when the seed is "planted." This usually involves:
+            * Raycasting to find the ground surface where the player is clicking.
+            * Creating an instance of your plant model at that location.
+            * Optionally, removing the seed tool if it's single-use (`tool:Destroy()`).
+
+    4.  **Quantity "[1x]":**
+        * The "[1x]" in the name is just text. This script doesn't implement a true quantity system.
+        * If the tool is destroyed after use, it acts like a single quantity. For multiple uses or stacking, you'd need a more complex inventory and data management system (e.g., using Attributes on the tool or a separate data store for player inventory).
+
+    5.  **Testing:**
+        * Always test thoroughly in Roblox Studio by running the game (Play Solo or Start Server). Check the Output window for any errors or print messages.
+]]
