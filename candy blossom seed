@@ -6,46 +6,97 @@ local function createCandyBlossomSeedTool()
     local tool = Instance.new("Tool")
     tool.Name = "Candy Blossom Seed [1x]"
     tool.ToolTip = "A sweet Candy Blossom Seed. Oh Dingy"
-    tool.RequiresHandle = true -- The tool needs a part named "Handle"
-    tool.CanBeDropped = true    -- Allows players to drop the tool
-    tool.Enabled = true         -- Ensures the tool is usable
+    tool.RequiresHandle = true
+    tool.CanBeDropped = true
+    tool.Enabled = true
 
-    -- Create the Handle for the tool (the part players will hold)
+    -- Adjust Grip properties to make it fit better in hand
+    -- GripPos shifts the tool relative to the hand's center.
+    -- Negative Y in GripPos moves it "down" in the hand.
+    -- Positive Z in GripPos moves it "backward" in the hand.
+    tool.GripPos = Vector3.new(0, -0.2, 0.18) -- Adjusted Z to move slightly more backward again
+    -- Default grip orientations (can be fine-tuned if needed)
+    tool.GripForward = Vector3.new(0, 0, -1)
+    tool.GripRight = Vector3.new(1, 0, 0)
+    tool.GripUp = Vector3.new(0, 1, 0)
+
+    -- Create the Handle for the tool
     local handle = Instance.new("Part")
     handle.Name = "Handle"
     handle.Parent = tool
-    -- Changed to a block shape and adjusted size to resemble a seed packet
     handle.Shape = Enum.PartType.Block
-    handle.Size = Vector3.new(0.4, 0.7, 0.2) -- Width, Height, Depth for a small packet
-    -- Changed color to a light blue and material to SmoothPlastic
-    handle.Color = Color3.fromRGB(173, 216, 230) -- LightBlue
+    -- Adjusted size to be overall bigger
+    handle.Size = Vector3.new(0.6, 1.0, 0.35) -- Width, Height, Depth
+    handle.Color = Color3.fromRGB(173, 216, 230) -- LightBlue base for non-gradient parts
     handle.Material = Enum.Material.SmoothPlastic
     handle.TopSurface = Enum.SurfaceType.Smooth
     handle.BottomSurface = Enum.SurfaceType.Smooth
-    handle.Anchored = false -- Tool handles MUST be unanchored to be held correctly
+    handle.Anchored = false
     handle.CanCollide = true
 
-    -- Sparkles removed as they don't match the provided image.
-    -- To achieve the gradient effect from the image, you would typically:
-    -- 1. Create a Decal with a gradient texture and apply it to the faces of this Handle.
-    --    Example:
-    --    local decal = Instance.new("Decal", handle)
-    --    decal.Texture = "rbxassetid://YOUR_GRADIENT_TEXTURE_ID"
-    --    decal.Face = Enum.NormalId.Front -- Apply to one or more faces
-    --
-    -- 2. Or, use a SurfaceGui with a UIGradient element on each face. This is more complex.
+    -- Helper function to create a gradient on a specific face
+    local function createFaceGradient(faceName, normalId, isSideFace)
+        local surfaceGui = Instance.new("SurfaceGui")
+        surfaceGui.Name = faceName .. "GradientGui"
+        surfaceGui.Adornee = handle
+        surfaceGui.Face = normalId
+        surfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+        surfaceGui.PixelsPerStud = 200
+        surfaceGui.Parent = handle
 
-    -- Optional: If you have a custom inventory icon image for the seed:
-    -- tool.TextureId = "rbxassetid://YOUR_ICON_IMAGE_ID_HERE" -- Replace with your image ID
+        local frame = Instance.new("Frame")
+        frame.Name = "GradientFrame"
+        frame.Parent = surfaceGui
+        frame.Size = UDim2.new(1, 0, 1, 0)
+        frame.BackgroundColor3 = handle.Color -- Use handle's base color
+        frame.BackgroundTransparency = 0
+        frame.BorderSizePixel = 0
 
-    -- Script for tool functionality (e.g., planting)
-    -- This is a basic placeholder. You'll need to add your planting logic here.
+        local uiGradient = Instance.new("UIGradient")
+        uiGradient.Name = faceName .. "Gradient"
+        uiGradient.Parent = frame
+
+        if isSideFace then
+            -- Gradient for side faces: Dark blue at top, fading to base color by midpoint
+            uiGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 100, 220)),    -- Darker blue at the top edge of the side
+                ColorSequenceKeypoint.new(0.5, handle.Color), -- Base color at halfway point
+                ColorSequenceKeypoint.new(1, handle.Color)    -- Base color at the bottom edge
+            })
+            -- Rotation might be needed depending on face orientation (0 or 90 are common)
+            -- For Front/Back, usually 0 or 180. For Left/Right, usually 0 or 90 / 270.
+            -- This ensures the gradient goes from top-to-bottom of the side face.
+            if normalId == Enum.NormalId.Front or normalId == Enum.NormalId.Back then
+                 uiGradient.Rotation = 0 -- Or 180 if it's upside down
+            elseif normalId == Enum.NormalId.Left or normalId == Enum.NormalId.Right then
+                 uiGradient.Rotation = 0 -- Or 90 / 270 if sideways
+            end
+        else -- Top face
+            uiGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 100, 220)),
+                ColorSequenceKeypoint.new(0.4, Color3.fromRGB(70, 150, 255)),
+                ColorSequenceKeypoint.new(1, handle.Color)
+            })
+            uiGradient.Rotation = 0 -- Adjust if gradient direction is wrong on top face
+        end
+        return surfaceGui
+    end
+
+    -- Create gradients for specified faces
+    createFaceGradient("Top", Enum.NormalId.Top, false)
+    createFaceGradient("Front", Enum.NormalId.Front, true)
+    createFaceGradient("Back", Enum.NormalId.Back, true)
+    createFaceGradient("Left", Enum.NormalId.Left, true)
+    createFaceGradient("Right", Enum.NormalId.Right, true)
+    -- Note: Bottom face will remain the solid base color.
+
+    -- Script for tool functionality
     local onActivateScript = Instance.new("Script")
     onActivateScript.Name = "ActivateScript"
     onActivateScript.Parent = tool
     onActivateScript.Source = [[
         local tool = script.Parent
-        local handle = tool:WaitForChild("Handle")
+        -- local handle = tool:WaitForChild("Handle") -- Not directly used in this basic activate script
 
         local debounce = false
         local COOLDOWN_TIME = 1 -- Seconds
@@ -68,26 +119,7 @@ local function createCandyBlossomSeedTool()
             print(player.Name .. " activated " .. tool.Name)
 
             -- TODO: Implement your planting logic here.
-            -- For example:
-            -- 1. Get the mouse position or character's look direction.
-            -- 2. Raycast to find a suitable planting spot on the ground.
-            -- 3. Check if the spot is valid (e.g., on grass, not too close to other plants).
-            -- 4. Clone and position your plant model.
-            -- 5. If the seed is single-use, destroy the tool: tool:Destroy()
-
-            -- Example: Play a sound effect (if you have one)
-            -- local plantSound = Instance.new("Sound", handle)
-            -- plantSound.SoundId = "rbxassetid://YOUR_SOUND_ID_HERE"
-            -- plantSound:Play()
-            -- game.Debris:AddItem(plantSound, plantSound.TimeLength)
-
-            -- For now, just a print statement
             print("Planting logic would go here for Candy Blossom Seed.")
-
-            -- If it's a one-time use seed, you might destroy it after planting:
-            -- tool:Destroy()
-            -- If you do this, the "[1x]" in the name becomes more relevant.
-            -- A more advanced system would manage actual quantities.
 
             task.wait(COOLDOWN_TIME)
             debounce = false
@@ -99,31 +131,17 @@ end
 
 -- Function to give the tool to a player when they join
 local function onPlayerAdded(player)
-    -- Get the player's Backpack (inventory)
     local backpack = player:WaitForChild("Backpack")
-
-    -- Check if the player already has this tool (e.g., from a previous session if not cleared, or if script runs multiple times)
-    -- This simple check is by name. More robust systems might use unique IDs or tags.
     if not backpack:FindFirstChild("Candy Blossom Seed [1x]") then
         local newSeedTool = createCandyBlossomSeedTool()
-        newSeedTool.Parent = backpack -- Add the tool to their backpack
+        newSeedTool.Parent = backpack
         print("Gave Candy Blossom Seed [1x] to " .. player.Name)
     end
-
-    -- You might also want to give it to their StarterGear if they should respawn with it
-    -- local starterGear = player:WaitForChild("StarterGear")
-    -- if not starterGear:FindFirstChild("Candy Blossom Seed [1x]") then
-    --     local newSeedToolForStarterGear = createCandyBlossomSeedTool() -- Create a new instance for StarterGear
-    --     newSeedToolForStarterGear.Parent = starterGear
-    -- end
 end
 
--- Connect the onPlayerAdded function to the PlayerAdded event
 game.Players.PlayerAdded:Connect(onPlayerAdded)
 
--- For players who might already be in the game when the script is loaded (e.g. during development)
 for _, player in ipairs(game.Players:GetPlayers()) do
-    -- Using task.spawn to avoid issues if onPlayerAdded yields
     task.spawn(onPlayerAdded, player)
 end
 
@@ -133,29 +151,13 @@ print("Candy Blossom Seed Tool Giver script has been loaded and is active.")
     Further Customization & Notes:
 
     1.  **Visual Appearance (Handle):**
-        * The handle is now a light blue block.
-        * To get the exact gradient from your image, you'll need to create a texture/image of that gradient.
-          Then, you can apply it as a `Decal` to the faces of the `Handle` part.
-          Example Decal snippet (inside createCandyBlossomSeedTool function):
-            -- local frontDecal = Instance.new("Decal", handle)
-            -- frontDecal.Texture = "rbxassetid://YOUR_GRADIENT_TEXTURE_ID_HERE"
-            -- frontDecal.Face = Enum.NormalId.Front
-            --
-            -- local backDecal = Instance.new("Decal", handle)
-            -- backDecal.Texture = "rbxassetid://YOUR_GRADIENT_TEXTURE_ID_HERE"
-            -- backDecal.Face = Enum.NormalId.Back
-            -- ... and so on for other faces if needed (Top, Bottom, Left, Right).
+        * Tool.GripPos Z value has been changed to 0.18 to move the tool slightly more backward in the player's hand.
+        * If this is too far back, you can make the value less positive (e.g., 0.15). If it's still not back enough, you can try more positive values (e.g., 0.2).
+        * Fine-tuning tool grips is iterative. Test in Studio to see the effect.
 
     2.  **Inventory Icon (`Tool.TextureId`):**
-        * If you have a 2D image for the inventory icon, upload it to Roblox and set the `tool.TextureId` property to its asset ID (e.g., "rbxassetid://123456789").
+        * If you have a 2D image for the inventory icon, upload it to Roblox and set the `tool.TextureId` property.
 
     3.  **Planting Logic (`ActivateScript`):**
-        * The `tool.Activated` event fires when the player clicks while the tool is equipped.
-        * You need to fill in the logic for what happens when the seed is "planted."
-
-    4.  **Quantity "[1x]":**
-        * The "[1x]" in the name is just text. This script doesn't implement a true quantity system.
-
-    5.  **Testing:**
-        * Always test thoroughly in Roblox Studio. Check the Output window for any errors.
+        * Remember to implement the actual planting functionality.
 ]]
