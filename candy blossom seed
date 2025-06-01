@@ -5,7 +5,7 @@
 local function createCandyBlossomSeedTool()
     local tool = Instance.new("Tool")
     tool.Name = "Candy Blossom Seed [1x]"
-    tool.ToolTip = "A sweet Candy Blossom Seed. Click to plant!"
+    tool.ToolTip = "A sweet Candy Blossom Seed. Oh Dingy"
     tool.RequiresHandle = true -- The tool needs a part named "Handle"
     tool.CanBeDropped = true    -- Allows players to drop the tool
     tool.Enabled = true         -- Ensures the tool is usable
